@@ -37,13 +37,13 @@ require_once cot_langfile('ipodcast', 'module');
 // Input import
 $noredirect = cot_import('noredirect', 'G', 'INT'); 
 
-if($cfg['useredirecturl']==1 && $noredirect!=1 && $cfg['redirecturl']!="")
+if($cfg['ipodcast']['ipodcast_useredirecturl']==1 && $noredirect!=1 && $cfg['ipodcast']['ipodcast_redirecturl']!="")
 { 
-	header('Location: '.$cfg['redirecturl']);
+	header('Location: '.$cfg['ipodcast']['ipodcast_redirecturl']);
 	exit();
 }
 
-$c = $cfg['catalog'];
+$c = $cfg['ipodcast']['ipodcast_catalog'];
 
 ob_clean();
 header('Content-type: text/xml; charset=UTF-8');
@@ -59,21 +59,21 @@ if ($usr['id'] === 0 && $cache)
 	}
 }
 
-$rss_title = $cfg['ipodcast_channeltitle'];
-$rss_link = $cfg['ipodcast_channellink'];
-$rss_lang = $cfg['ipodcast_channellang'];
-$rss_copy = $cfg['ipodcast_channelcopy'];
-$rss_subtitle = $cfg['ipodcast_channelsubtitle'];
-$rss_author = $cfg['ipodcast_channelauthor'];
-$rss_summary = $cfg['ipodcast_channelsummary'];
-$rss_description = $cfg['ipodcast_channeldescription'];
-$rss_ownername = $cfg['ipodcast_channelownername'];
-$rss_owneremail = $cfg['ipodcast_channelowneremail'];
-$rss_image = $cfg['ipodcast_channelimage'];
-$rss_categories = $cfg['ipodcast_channelcategories'];
-$cfg_maxitems = $cfg['ipodcast_maxitems']; // max items in rss
-$rss_explicit = $cfg['ipodcast_channelexplicit'];
-$showchannelimage = $cfg['ipodcast_showchannelimage'];
+$rss_title 			= $cfg['ipodcast']['ipodcast_channeltitle'];
+$rss_link 			= $cfg['ipodcast']['ipodcast_channellink'];
+$rss_lang 			= $cfg['ipodcast']['ipodcast_channellang'];
+$rss_copy 			= $cfg['ipodcast']['ipodcast_channelcopy'];
+$rss_subtitle 		= $cfg['ipodcast']['ipodcast_channelsubtitle'];
+$rss_author 		= $cfg['ipodcast']['ipodcast_channelauthor'];
+$rss_summary 		= $cfg['ipodcast']['ipodcast_channelsummary'];
+$rss_description 	= $cfg['ipodcast']['ipodcast_channeldescription'];
+$rss_ownername 		= $cfg['ipodcast']['ipodcast_channelownername'];
+$rss_owneremail 	= $cfg['ipodcast']['ipodcast_channelowneremail'];
+$rss_image 			= $cfg['ipodcast']['ipodcast_channelimage'];
+$rss_categories 	= $cfg['ipodcast']['ipodcast_channelcategories'];
+$cfg_maxitems 		= $cfg['ipodcast']['ipodcast_maxitems']; // max items in rss
+$rss_explicit 		= $cfg['ipodcast']['ipodcast_channelexplicit'];
+$showchannelimage 	= $cfg['ipodcast']['ipodcast_showchannelimage'];
 
 
 /* === Hook === */
@@ -86,9 +86,9 @@ foreach (cot_getextplugins('ipodcast.create') as $pl)
 if ($c!="")
 {
 	// == Category rss ==
-	$res = sed_sql_query("SELECT * FROM $db_structure");
+	$sql = $db->query("SELECT * FROM $db_structure");
 	$flag = 0;
-	while($row = mysql_fetch_assoc($res))
+	while($row = $sql->fetch())
 	if ($c==$row['structure_code'])
 	{
 		$flag = 1;
@@ -98,37 +98,42 @@ if ($c!="")
 	{
 		// found subcategories
 		$where = "0";
-		$sql = "SELECT * FROM $db_structure WHERE structure_path LIKE '%$category_path%'";
-		$res = cot_sql_query($sql);
-		while($row = mysql_fetch_assoc($res)) $where .= " OR page_cat = '".$row['structure_code']."'";
+		$sql = $db->query("SELECT * FROM $db_structure WHERE structure_path LIKE '%$category_path%'");
+		while($row = $sql->fetch()) $where .= " OR page_cat = '".$row['structure_code']."'";
 
-		$sql = "SELECT * FROM $db_pages WHERE ($where) AND page_state = '0' ORDER BY page_date DESC LIMIT $cfg_maxitems";
-		$res = cot_sql_query($sql);
+		$sql = $db->query("SELECT * FROM $db_pages 
+			WHERE ($where) AND page_state=0 AND page_begin <= {$sys['now']} AND (page_expire = 0 OR page_expire > {$sys['now']}) 
+			ORDER BY page_date DESC LIMIT $cfg_maxitems");
 		$i = 0;
-		while($pag = mysql_fetch_assoc($res))
+		while($row = $sql->fetch())
 		{
-			if($pag['page_file']!=1) continue;
+			if($row['page_file']!=1) continue;
 			
-			$items[$i]['title'] = $pag['page_title'];
-			if($pag['page_alias']!="")
-				{ $items[$i]['link'] = SED_ABSOLUTE_URL.sed_url('page', "al=".$pag['page_alias'], '', true); }
-			else 
-				{ $items[$i]['link'] = SED_ABSOLUTE_URL.sed_url('page', "id=".$pag['page_id'], '', true); }
-			$items[$i]['author'] = $pag['page_author'];
-									
-			$items[$i]['pubDate'] = date('r', $pag['page_date']);
-			if($cfg['descusepagetext']==1) $items[$i]['description'] = cot_parse_page_text($pag);
-			else $items[$i]['description'] = $pag['page_desc'];
-						
-			//$items[$i]['contenturl'] = SED_ABSOLUTE_URL.sed_url('page', "id=".$pag['page_id']."&a=dl", '', true);
+			$items[$i]['title'] = $row['page_title'];
+			
+			$row['page_pageurl'] = (empty($row['page_alias'])) ? cot_url('page', 'c='.$row['page_cat'].'&id='.$row['page_id'], '', true) : cot_url('page', 'c='.$row['page_cat'].'&al='.$row['page_alias'], '', true);
+			
+			$items[$i]['link'] = COT_ABSOLUTE_URL . $row['page_pageurl'];						
+			$items[$i]['author'] = $row['page_author'];									
+			$items[$i]['pubDate'] = cot_date('r', $row['page_date']);
+			if($cfg['ipodcast']['ipodcast_descusepagetext']==1)
+			{
+				$items[$i]['description'] = cot_parse_page_text($row['page_id'], $row['page_type'], $row['page_text'], $row['page_pageurl'], $row['page_parser']);
+			}
+			else
+			{
+				$items[$i]['description'] = $row['page_desc'];
+			}
+			
+			//$items[$i]['contenturl'] = COT_ABSOLUTE_URL.cot_url('page', "id=".$row['page_id']."&a=dl", '', true);
 			
 			//"(https?|ftp|file)://[-A-Z0-9+&@#/%?=~_|!:,.;]*[-A-Z0-9+&@#/%=~_|]"
-			if(preg_match("|^http(s)?://[a-z0-9-]+(.[a-z0-9-]+)*(:[0-9]+)?(/.*)?$|i", $pag['page_url']))
-				$items[$i]['contenturl'] = $pag['page_url'];
+			if(preg_match("|^http(s)?://[a-z0-9-]+(.[a-z0-9-]+)*(:[0-9]+)?(/.*)?$|i", $row['page_url']))
+				$items[$i]['contenturl'] = $row['page_url'];
 			else 
-				$items[$i]['contenturl'] = SED_ABSOLUTE_URL.$pag['page_url'];
+				$items[$i]['contenturl'] = COT_ABSOLUTE_URL.$row['page_url'];
 						
-			if($pag['page_size']!="") $items[$i]['contentlength'] = ereg_replace("[^0-9]","", $pag['page_size'])* 1024;
+			if($row['page_size']!="") $items[$i]['contentlength'] = ereg_replace("[^0-9]","", $row['page_size'])* 1024;
 			else $items[$i]['contentlength'] ="0";
 			$ext =  substr(strrchr($items[$i]['contenturl'],'.'),1);
 			$items[$i]['contenttype'] = "audio/mpeg";
@@ -151,19 +156,19 @@ if ($c!="")
 			}			
 			
 			$items[$i]['guid'] = $items[$i]['link'];
-			try { $items[$i]['subtitle'] = $pag['page_ipodcast_subtitle']; }
+			try { $items[$i]['subtitle'] = $row['page_ipodcast_subtitle']; }
 			catch (Exception $ex) { $items[$i]['subtitle'] = ""; }
 			
-			try { $items[$i]['duration'] = ereg_replace("[^:0-9]","", $pag['page_ipodcast_duration']); }
+			try { $items[$i]['duration'] = ereg_replace("[^:0-9]","", $row['page_ipodcast_duration']); }
 			catch (Exception $ex){ $items[$i]['duration'] = "1:00"; }
 			
-			try { $items[$i]['summary'] = $pag['page_ipodcast_summary']; }
+			try { $items[$i]['summary'] = $row['page_ipodcast_summary']; }
 			catch (Exception $ex) { $items[$i]['summary'] = ""; }
 			
-			try { $items[$i]['image'] = $pag['page_ipodcast_image']; }
+			try { $items[$i]['image'] = $row['page_ipodcast_image']; }
 			catch (Exception $ex) { $items[$i]['image'] = ""; }
 						
-			$tags = cot_tag_list($pag['page_id']);
+			$tags = cot_tag_list($row['page_id']);
 			$tags = implode(', ', $tags);
 			$items[$i]['keywords'] = $tags;
 			
@@ -241,44 +246,79 @@ echo $out_rss;
 // ---------------------------------------------------------------------------------------------
 
 
-function cot_parse_page_text($pag)
+function cot_parse_page_text($pag_id, $pag_type, $pag_text, $pag_pageurl, $pag_parser)
 {
-	global $cfg, $db_pages;
-	switch($pag['page_type'])
+	global $db, $cfg, $db_pages, $usr;
+
+	$pag_text = cot_parse($pag_text, $pag_parser !== 'none', $pag_parser);
+	$readmore = mb_strpos($pag_text, "<!--more-->");
+	if ($readmore > 0)
 	{
-		case '1':
-			$text = $pag['page_text'];
-			break;
-		case '2':
-			if ($cfg['allowphp_pages']&&$cfg['allowphp_override'])
-			{
-				ob_start();
-				eval($pag['page_text']);
-				$text = ob_get_clean();
-			}else
-			{
-				$text = "The PHP mode is disabled for pages.<br />Please see the administration panel, then \"Configuration\", then \"Parsers\".";
-			}
-			break;
-		default:
-			if ($cfg['parser_cache'])
-			{
-				if (empty($pag['page_html'])&&!empty($pag['page_text']))
-				{
-					$pag['page_html'] = cot_parse(cot_cc($pag['page_text']), $cfg['parsebbcodepages'], $cfg['parsesmiliespages'], 1);
-					cot_sql_query("UPDATE $db_pages SET page_html = '".cot_sql_prep($pag['page_html'])."' WHERE page_id = ".$pag['page_id']);
-				}
-				$html = $cfg['parsebbcodepages'] ? cot_post_parse($pag['page_html']) : cot_cc($pag['page_text']);
-				$text = $html;
-			}else
-			{
-				$text = cot_parse(cot_cc($pag['page_text']), $cfg['parsebbcodepages'], $cfg['parsesmiliespages'], 1);
-				$text = cot_post_parse($text, 'pages');
-			}
-			break;
+		$pag_text = mb_substr($pag_text, 0, $readmore) . ' ';
+		$pag_text .= cot_rc('list_link_more', array('page_url' => $pag_pageurl));
+	}
+
+	$newpage = mb_strpos($pag_text, '[newpage]');
+
+	if ($newpage !== false)
+	{
+		$pag_text = mb_substr($pag_text, 0, $newpage);
+	}
+
+	$pag_text = preg_replace('#\[title\](.*?)\[/title\][\s\r\n]*(<br />)?#i', '', $pag_text);
+	$text = $pag_text;
+	if ((int)$cfg['ipodcast']['ipodcast_pagemaxsymbols'] > 0)
+	{
+		$text = cot_string_truncate($text, $cfg['ipodcast']['ipodcast_pagemaxsymbols']) . '...';
 	}
 	return $text;
 }
 
+function cot_relative2absolute($matches)
+{
+	global $sys;
+	$res = $matches[1].$matches[2].'='.$matches[3];
+	if (preg_match('#^(http|https|ftp)://#', $matches[4]))
+	{
+		$res .= $matches[4];
+	}
+	else
+	{
+		if ($matches[4][0] == '/')
+		{
+			$scheme = $sys['secure'] ? 'https' : 'http';
+			$res .= $scheme . '://' . $sys['host'] . $matches[4];
+		}
+		else
+		{
+			$res .= COT_ABSOLUTE_URL . $matches[4];
+		}
+	}
+	$res .= $matches[5];
+	return $res;
+}
+
+function cot_convert_relative_urls($text)
+{
+	$text = preg_replace_callback('#(\s)(href|src)=("|\')?([^"\'\s>]+)(["\'\s>])#', 'cot_relative2absolute', $text);
+	return $text;
+}
+
+
+/**
+ * Fixes timezone in RSS pubdate
+ * @global array $usr
+ * @param string $pubdate Pubdate generated with cot_date()
+ * @return string Corrected pubdate
+ */
+function cot_fix_pubdate($pubdate)
+{
+	global $usr;
+	$tz = floatval($usr['timezone']);
+	$sign = $tz > 0 ? '+' : '-';
+	$base = intval(abs($tz) * 100);
+	$tz_str = $sign . str_pad($base, 4, '0', STR_PAD_LEFT);
+	return str_replace('+0000', $tz_str, $pubdate);
+}
 
 ?>
