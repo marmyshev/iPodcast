@@ -41,6 +41,10 @@ ipodcast_showchannelimage=16:radio::1:Show channel image for item if itself imag
 ipodcast_channelexplicit=17:select:Yes,No,Clean:No:This tag should be used to indicate whether or not your podcast contains explicit material
 ipodcast_useredirecturl=18:radio::0:Use redirect URL for podcast
 ipodcast_redirecturl=19:string::http:Redirect URL for podcast (for external feed system)
+ipodcast_timetolive=20:select:0,10,20,30,40,50,60,120,180,140,200:30:
+ipodcast_charset=21:string::UTF-8:
+ipodcast_pagemaxsymbols=22:string:::
+ipodcast_postmaxsymbols=23:string:::
 [END_COT_EXT_CONFIG]
 ==================== */
 

@@ -17,7 +17,7 @@
 		<itunes:email>{RSS_OWNEREMAIL}</itunes:email>
 		</itunes:owner>
 		<itunes:explicit>{RSS_EXPLICIT}</itunes:explicit>
-		<itunes:image href="{RSS_IMAGEURL}" />
+		<!-- IF {RSS_IMAGEURL} --><itunes:image href="{RSS_IMAGEURL}" /><!-- ENDIF -->
 		<generator>iPodcast</generator>
 
 		<!-- BEGIN: ITEM_ROW -->
@@ -30,7 +30,7 @@
 			<itunes:subtitle>{RSS_ROW_SUBTITLE}</itunes:subtitle>
 			<itunes:summary>{RSS_ROW_SUMMARY}</itunes:summary>
 			<itunes:explicit>{RSS_ROW_EXPLICIT}</itunes:explicit>
-			<itunes:image href="{RSS_ROW_IMAGEURL}" />
+			<!-- IF {RSS_ROW_IMAGEURL} --><itunes:image href="{RSS_ROW_IMAGEURL}" /><!-- ENDIF -->
 			<enclosure url="{RSS_ROW_CONTENTURL}" length="{RSS_ROW_CONTENTLENGTH}" type="{RSS_ROW_CONTENTTYPE}" />
 			<guid>{RSS_ROW_GUID}</guid>
 			<itunes:duration>{RSS_ROW_DURATION}</itunes:duration>

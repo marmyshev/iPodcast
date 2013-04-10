@@ -29,14 +29,10 @@ defined('COT_CODE') && defined('COT_PLUG') or die('Wrong URL');
 
 // Environment setup
 define('COT_IPODCAST', true);
-$env['location'] = 'iPodcast';
+$env['location'] = 'ipodcast';
 
 // Self requirements
 require_once cot_langfile('ipodcast', 'module');
-
-// TODO move this to config
-$cfg_timetolive = 30; // refresh cache every N seconds
-$cfg_charset = "UTF-8";
 
 // Input import
 $noredirect = cot_import('noredirect', 'G', 'INT'); 
@@ -50,8 +46,9 @@ if($cfg['useredirecturl']==1 && $noredirect!=1 && $cfg['redirecturl']!="")
 $c = $cfg['catalog'];
 
 ob_clean();
-header('Content-type: text/xml; charset='.$cfg_charset);
+header('Content-type: text/xml; charset=UTF-8');
 $sys['now'] = time();
+
 if ($usr['id'] === 0 && $cache)
 {
 	$rss_cache = $cache->db->get($c . $id, 'ipodcast');
@@ -62,24 +59,22 @@ if ($usr['id'] === 0 && $cache)
 	}
 }
 
-$rss_title = $cfg['channeltitle'];
-$rss_link = $cfg['channellink'];
-$rss_lang = $cfg['channellang'];
-$rss_copy = $cfg['channelcopy'];
-$rss_subtitle = $cfg['channelsubtitle'];
-$rss_author = $cfg['channelauthor'];
-$rss_summary = $cfg['channelsummary'];
-$rss_description = $cfg['channeldescription'];
-$rss_ownername = $cfg['channelownername'];
-$rss_owneremail = $cfg['channelowneremail'];
-$rss_image = $cfg['channelimage'];
-$rss_categories = $cfg['channelcategories'];
-$cfg_maxitems = $cfg['maxitems']; // max items in rss
-$rss_explicit = $cfg['channelexplicit'];
+$rss_title = $cfg['ipodcast_channeltitle'];
+$rss_link = $cfg['ipodcast_channellink'];
+$rss_lang = $cfg['ipodcast_channellang'];
+$rss_copy = $cfg['ipodcast_channelcopy'];
+$rss_subtitle = $cfg['ipodcast_channelsubtitle'];
+$rss_author = $cfg['ipodcast_channelauthor'];
+$rss_summary = $cfg['ipodcast_channelsummary'];
+$rss_description = $cfg['ipodcast_channeldescription'];
+$rss_ownername = $cfg['ipodcast_channelownername'];
+$rss_owneremail = $cfg['ipodcast_channelowneremail'];
+$rss_image = $cfg['ipodcast_channelimage'];
+$rss_categories = $cfg['ipodcast_channelcategories'];
+$cfg_maxitems = $cfg['ipodcast_maxitems']; // max items in rss
+$rss_explicit = $cfg['ipodcast_channelexplicit'];
+$showchannelimage = $cfg['ipodcast_showchannelimage'];
 
-//$domain = str_replace("http://","",$cfg['mainurl']);
-
-//require($cfg['system_dir'].'/mimetype.php');
 
 /* === Hook === */
 foreach (cot_getextplugins('ipodcast.create') as $pl)
@@ -177,79 +172,71 @@ if ($c!="")
 	}
 }
 
-// RSS podcast output
-$out = "<?xml version='1.0' encoding='".$cfg_charset."'?>\n";
-$out .= "<rss xmlns:itunes=\"http://www.itunes.com/dtds/podcast-1.0.dtd\" version='2.0'>\n";
-$out .= "<channel>\n";
-$out .= "<title>".$rss_title."</title>\n";
-$out .= "<link>".$rss_link."</link>\n";
-$out .= "<language>".$rss_lang."</language>\n";
-$out .= "<copyright>".$rss_copy."</copyright>\n"; 
-$out .= "<itunes:subtitle>".$rss_subtitle."</itunes:subtitle>\n";
-$out .= "<itunes:author>".$rss_author."</itunes:author>\n";
-$out .= "<itunes:summary>".$rss_summary."</itunes:summary>\n";
-$out .= "<description>".$rss_description."</description>\n";
-$out .= "<itunes:owner>\n";
-$out .= "<itunes:name>".$rss_ownername."</itunes:name>\n";
-$out .= "<itunes:email>".$rss_owneremail."</itunes:email>\n";
-$out .= "</itunes:owner>\n";
-$out .= "<itunes:explicit>".$rss_explicit."</itunes:explicit>\n";
+$t = new XTemplate(cot_tplfile('ipodcast'));
+$t->assign(array(
+	'RSS_ENCODING' => $cfg['ipodcast']['ipodcast_charset'],
+	'RSS_TITLE' => htmlspecialchars($rss_title),
+	'RSS_LINK' => $rss_link,
+	'RSS_LANG' => $rss_lang,
+	'RSS_DESCRIPTION' => htmlspecialchars($rss_description),
+	'RSS_DATE' => cot_fix_pubdate(cot_date("r")),
+	'RSS_COPYRIGHT' => htmlspecialchars($rss_copy),
+	'RSS_SUBTITLE' => htmlspecialchars($rss_subtitle),
+	'RSS_AUTHOR' => htmlspecialchars($rss_author),
+	'RSS_SUMMARY' => htmlspecialchars($rss_summary),
+	'RSS_OWNERNAME' => htmlspecialchars($rss_ownername),
+	'RSS_OWNEREMAIL' => htmlspecialchars($rss_owneremail),
+	'RSS_EXPLICIT' => $rss_explicit,
+	'RSS_IMAGEURL' => $rss_image
+));
 
-if($rss_image!="") $out .= "<itunes:image href=\"".$rss_image."\" />\n";
-
-
-//<itunes:category text="Technology">
-//<itunes:category text="Gadgets"/>
-//</itunes:category>
-//<itunes:category text="TV &amp; Film"/>
-
-$out .= "<generator>iPodcast</generator>\n";
-$out .= "<pubDate>".date("r", time())."</pubDate>\n";
 if (count($items)>0)
 {
 	foreach($items as $item)
 	{
-		$out .= "<item>\n";
-		$out .= "<title>".htmlspecialchars($item['title'])."</title>\n";
-		$out .= "<itunes:author>".htmlspecialchars($item['author'])."</itunes:author>\n";
-		$out .= "<itunes:subtitle>".htmlspecialchars($item['subtitle'])."</itunes:subtitle>\n";
-		$out .= "<itunes:summary>".htmlspecialchars($item['summary'])."</itunes:summary>\n";				
-		$out .= "<itunes:explicit>".$rss_explicit."</itunes:explicit>\n";
-		$out .= "<description><![CDATA[".$item['description']."]]></description>\n";
-		if($item['image']!="") $out .= "<itunes:image href=\"".$item['image']."\" />\n";
-		elseif($item['image']=="" && $rss_image!="" && $cfg['showchannelimage']==1) $out .= "<itunes:image href=\"".$rss_image."\" />\n";
+		if($item['image']!="") $item_image = $item['image'];
+		elseif($item['image']=="" && $rss_image!="" && $showchannelimage==1) $item_image = $rss_image;
+		else $item_image = "";
 		
-		$out .= "<enclosure url=\"".htmlspecialchars($item['contenturl'])."\"";
-		if($item['contentlength']>"0") $out .= " length=\"".htmlspecialchars($item['contentlength'])."\"";
-		if($item['contenttype']!="") $out .= " type=\"".$item['contenttype']."\"";
-		$out .= " />\n";
-		
-		$out .= "<guid>".$item['guid']."</guid>\n";	
-		$out .= "<pubDate>".$item['pubDate']."</pubDate>\n";
-		
-		if($item['duration']!="") $out .= "<itunes:duration>".$item['duration']."</itunes:duration>\n";
-		$out .= "<itunes:keywords>".htmlspecialchars($item['keywords'])."</itunes:keywords>\n";		
-
-		$out .= "<link><![CDATA[".$item['link']."]]></link>\n";
-		$out .= "</item>\n";
+		$t->assign(array(
+			'RSS_ROW_TITLE' => htmlspecialchars($item['title']),
+			'RSS_ROW_DESCRIPTION' => cot_convert_relative_urls($item['description']),
+			'RSS_ROW_DATE' => cot_fix_pubdate($item['pubDate']),
+			'RSS_ROW_LINK' => $item['link'],
+			'RSS_ROW_FIELDS' => $item['fields'],
+			'RSS_ROW_AUTHOR' => htmlspecialchars($item['author']),
+			'RSS_ROW_SUBTITLE' => htmlspecialchars($item['subtitle']),
+			'RSS_ROW_SUMMARY' => htmlspecialchars($item['summary']),
+			'RSS_ROW_EXPLICIT' => $rss_explicit,
+			'RSS_ROW_IMAGEURL' => item_image,
+			'RSS_ROW_CONTENTURL' => htmlspecialchars($item['contenturl']),
+			'RSS_ROW_CONTENTLENGTH' => htmlspecialchars($item['contentlength']),
+			'RSS_ROW_CONTENTTYPE' => $item['contenttype'],
+			'RSS_ROW_GUID' => $item['guid'],
+			'RSS_ROW_DURATION' => htmlspecialchars($item['duration']),
+			'RSS_ROW_KEYWORDS' => htmlspecialchars($item['keywords'])
+		));
+		$t->parse('MAIN.ITEM_ROW'); 
 	}
 }
-$out .= "</channel>\n";
-$out .= "</rss>";
 
 /* === Hook === */
-$extp = cot_getextplugins('ipodcast.output');
-if (is_array($extp))
+foreach (cot_getextplugins('ipodcast.output') as $pl)
 {
-	foreach($extp as $k=>$pl)
-	{
-		include_once ($cfg['plugins_dir'].'/'.$pl['pl_code'].'/'.$pl['pl_file'].'.php');
-	}
+	include $pl;
 }
 /* ===== */
 
-cot_cache_store("ipodcast_".$c, $out, $cfg_timetolive);
-echo $out;
+$t->parse('MAIN');
+$out_rss = $t->text('MAIN');
+
+if ($usr['id'] === 0 && $cache)
+{
+	$cache->db->store($c . $id, $out_rss, 'ipodcast', $cfg['ipodcast']['ipodcast_timetolive']);
+}
+echo $out_rss;
+
+
 
 // ---------------------------------------------------------------------------------------------
 
