@@ -9,7 +9,7 @@ http://www.marmyshev.ru
 Code=ipodcast
 Name=iPodcast
 Description=iTunes Podcast for iPhone, iPod, iPad. create by Dmitriy Marmyshev for Cotonti
-Version=0.9.1
+Version=1.0.1
 Date=2019-feb-14
 Author=Dmitriy Marmyshev
 Copyright=(c) Dmitriy Marmyshev
