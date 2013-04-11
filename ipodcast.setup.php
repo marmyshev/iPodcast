@@ -10,7 +10,7 @@ Code=ipodcast
 Name=iPodcast
 Description=iTunes Podcast for iPhone, iPod, iPad. create by Dmitriy Marmyshev for Cotonti
 Version=1.0.1
-Date=2019-feb-14
+Date=2013-apr-11
 Author=Dmitriy Marmyshev
 Copyright=(c) Dmitriy Marmyshev
 Notes=BSD License
@@ -18,7 +18,7 @@ Auth_guests=R
 Lock_guests=A
 Auth_members=R
 Lock_members=
-Recommends_modules=page,rss
+Recommends_modules=page
 [END_COT_EXT]
 
 [BEGIN_COT_EXT_CONFIG]
