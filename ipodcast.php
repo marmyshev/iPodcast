@@ -13,7 +13,7 @@ Hooks=module
  * iTunes Podcast RSS output module.
  *
  * @package Cotonti
- * @version 0.0.1
+ * @version 1.0.1
  * @author Dmitriy Marmyshev
  * @copyright Copyright (c) 2009 Dmitriy Marmyshev
  * @license BSD License
